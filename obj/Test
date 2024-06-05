@@ -1,0 +1,69 @@
+To convert a searchable PDF to HTML in Python while preserving the format, you can use libraries like `pdfminer.six` to extract text and its position, and `html` for creating HTML content. Here's a step-by-step guide:
+
+### Dependencies
+
+First, make sure you have the necessary libraries installed. You can install them using pip:
+
+```sh
+pip install pdfminer.six
+pip install beautifulsoup4
+```
+
+### Python Code
+
+Here's an example Python script to convert a searchable PDF to HTML:
+
+```python
+from pdfminer.high_level import extract_pages
+from pdfminer.layout import LTTextBoxHorizontal, LAParams
+from bs4 import BeautifulSoup
+
+def convert_pdf_to_html(pdf_path, output_html_path):
+    # Create a BeautifulSoup object for building the HTML structure
+    soup = BeautifulSoup("<html><head><style>"
+                         ".page { position: relative; }"
+                         ".text { position: absolute; }"
+                         "</style></head><body></body></html>", "html.parser")
+    body = soup.body
+
+    # Extract text and position from each page
+    for page_layout in extract_pages(pdf_path, laparams=LAParams()):
+        page_div = soup.new_tag("div", **{"class": "page"})
+        body.append(page_div)
+        
+        for element in page_layout:
+            if isinstance(element, LTTextBoxHorizontal):
+                for text_line in element:
+                    for character in text_line:
+                        x = character.x0
+                        y = character.y0
+                        font_size = character.size
+                        text = character.get_text().strip()
+                        
+                        if text:
+                            span = soup.new_tag("span", **{"class": "text", "style": f"left: {x}px; top: {y}px; font-size: {font_size}px;"})
+                            span.string = text
+                            page_div.append(span)
+
+    # Save the HTML content to a file
+    with open(output_html_path, "w", encoding="utf-8") as f:
+        f.write(soup.prettify())
+
+# Usage
+convert_pdf_to_html("input.pdf", "output.html")
+```
+
+### Explanation
+
+1. **Extract Text with Positions**: The script uses `pdfminer.six` to extract text along with its position from the PDF. The `extract_pages` function iterates over each page in the PDF, and `LAParams` is used to configure the layout analysis parameters.
+2. **Create HTML Structure**: `BeautifulSoup` is used to create the HTML structure. A `<div>` element with a class of `page` is created for each page.
+3. **Add Text Elements**: For each text element in the PDF, a `<span>` element is created with inline CSS to position it absolutely based on the extracted coordinates (`left` and `top`). The font size is also set according to the extracted font size.
+4. **Save HTML File**: The generated HTML content is saved to the specified output file.
+
+### Notes
+
+- **Positioning and Styling**: This script positions text elements absolutely based on their extracted coordinates. Additional CSS can be added to style the HTML further or to adjust the positioning as needed.
+- **Font Handling**: The script handles basic font size but can be extended to include other font properties like font family, bold, and italic by extracting more attributes from `character`.
+- **Complex Layouts**: For more complex PDFs with images, tables, and other elements, additional logic will be needed to handle those elements appropriately.
+
+This script provides a basic framework for converting a searchable PDF to HTML while retaining the layout. You can adjust and extend it to handle specific requirements and more complex document structures.
