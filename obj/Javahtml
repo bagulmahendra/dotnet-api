@@ -1,0 +1,130 @@
+To convert a searchable PDF to HTML in Java while preserving the original format with high accuracy, you need to carefully extract text along with its position and formatting details, then accurately recreate that layout in HTML. Here’s a comprehensive approach using Apache PDFBox for text extraction and positioning, and jsoup for creating the HTML structure.
+
+### Dependencies
+First, add the necessary dependencies to your `pom.xml` file if you're using Maven:
+
+```xml
+<dependencies>
+    <!-- PDFBox dependency -->
+    <dependency>
+        <groupId>org.apache.pdfbox</groupId>
+        <artifactId>pdfbox</artifactId>
+        <version>2.0.26</version>
+    </dependency>
+
+    <!-- jsoup dependency -->
+    <dependency>
+        <groupId>org.jsoup</groupId>
+        <artifactId>jsoup</artifactId>
+        <version>1.14.3</version>
+    </dependency>
+</dependencies>
+```
+
+### Java Code
+Here is a detailed Java code example to convert a searchable PDF to HTML while maintaining high accuracy and preserving the original format:
+
+```java
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.pdfbox.text.TextPosition;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.List;
+
+public class PDFToHTML {
+
+    public static void main(String[] args) {
+        try {
+            // Load the PDF
+            File inputFile = new File("input.pdf");
+            PDDocument document = PDDocument.load(inputFile);
+
+            // Create an HTML document using jsoup
+            Document htmlDocument = Document.createShell("");
+            Element body = htmlDocument.body();
+
+            // Initialize PDFTextStripper with custom text position handling
+            PDFTextStripper stripper = new PDFTextStripper() {
+                @Override
+                protected void writeString(String string, List<TextPosition> textPositions) throws IOException {
+                    for (TextPosition text : textPositions) {
+                        float x = text.getX();
+                        float y = text.getY();
+                        float fontSize = text.getFontSize();
+                        String fontFamily = text.getFont().getName();
+                        String textString = text.getUnicode().trim();
+
+                        if (!textString.isEmpty()) {
+                            Element span = body.appendElement("span");
+                            span.attr("style", String.format("position:absolute; left:%.2fpx; top:%.2fpx; font-size:%.2fpx; font-family:%s;",
+                                    x, y, fontSize, fontFamily));
+                            span.text(textString);
+                        }
+                    }
+                }
+            };
+
+            // Extract text with position information for each page
+            for (int pageNum = 0; pageNum < document.getNumberOfPages(); pageNum++) {
+                stripper.setStartPage(pageNum + 1);
+                stripper.setEndPage(pageNum + 1);
+
+                // Create a new HTML element for the page
+                Element pageDiv = body.appendElement("div").attr("class", "page");
+                stripper.writeText(document, new PageContentWriter(pageDiv));
+            }
+
+            // Save the HTML document to a file
+            try (FileWriter writer = new FileWriter("output.html")) {
+                writer.write(htmlDocument.outerHtml());
+            }
+
+            // Close the PDF document
+            document.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Custom class to handle writing content to a specific HTML element
+    static class PageContentWriter extends java.io.Writer {
+        private final Element pageDiv;
+
+        public PageContentWriter(Element pageDiv) {
+            this.pageDiv = pageDiv;
+        }
+
+        @Override
+        public void write(char[] cbuf, int off, int len) throws IOException {
+            pageDiv.appendText(new String(cbuf, off, len));
+        }
+
+        @Override
+        public void flush() throws IOException {
+        }
+
+        @Override
+        public void close() throws IOException {
+        }
+    }
+}
+```
+
+### Explanation
+1. **Load the PDF**: The PDF is loaded using Apache PDFBox.
+2. **Create HTML Document**: An HTML document shell is created using jsoup.
+3. **Extract Text with Position Information**: A custom `PDFTextStripper` is used to extract text along with its position and formatting details. The `writeString` method is overridden to capture text positions and styles.
+4. **Create HTML Elements**: For each page and each text position, a `span` element is created with absolute positioning to retain the layout. The `style` attribute is used to set `left`, `top`, `font-size`, and `font-family`.
+5. **Custom PageContentWriter**: This class ensures the extracted text is written to the correct HTML element (`pageDiv`).
+6. **Save HTML File**: The generated HTML content is saved to the specified output file.
+
+### Notes
+- **CSS for Better Layout**: Additional CSS can be added to improve the appearance of the HTML, ensuring better alignment and styling.
+- **Complex Layouts**: For more complex PDFs with images, tables, and other elements, additional logic will be needed to handle those elements appropriately.
+
+This approach ensures high accuracy in converting a searchable PDF to HTML, preserving the original format as closely as possible. Adjustments may be needed based on specific document layouts and requirements.
