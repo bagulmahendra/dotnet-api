@@ -1,0 +1,60 @@
+# Set the source directory and the destination directory
+$sourceDirectory = "C:\path\to\source\folder"
+$destinationDirectory = "C:\path\to\destination\folder"
+$maxSizeInBytes = 1GB
+
+# Ensure the destination directory exists
+if (!(Test-Path -Path $destinationDirectory)) {
+    New-Item -ItemType Directory -Path $destinationDirectory
+}
+
+# Initialize variables
+$zipCounter = 1
+$currentZipSize = 0
+$zipFiles = @()
+
+# Function to create a new zip file
+function Create-ZipFile {
+    param (
+        [string]$zipFileName,
+        [string[]]$filesToAdd
+    )
+    
+    $zipPath = Join-Path $destinationDirectory $zipFileName
+    Compress-Archive -Path $filesToAdd -DestinationPath $zipPath
+    $filesToAdd.Clear()
+    return $zipPath
+}
+
+# Gather all files from the source directory
+$allFiles = Get-ChildItem -Path $sourceDirectory -File -Recurse | Sort-Object FullName
+
+# Initialize a list to keep track of files to add to the current zip
+$currentZipFiles = New-Object System.Collections.Generic.List[System.String]
+
+foreach ($file in $allFiles) {
+    $fileSize = (Get-Item $file.FullName).Length
+    
+    # If adding this file exceeds the max size, create a new zip file
+    if ($currentZipSize + $fileSize -gt $maxSizeInBytes) {
+        $zipFileName = "archive_$zipCounter.zip"
+        $zipPath = Create-ZipFile -zipFileName $zipFileName -filesToAdd $currentZipFiles
+        $zipFiles += $zipPath
+        $zipCounter++
+        $currentZipSize = 0
+    }
+    
+    # Add the file to the current zip
+    $currentZipFiles.Add($file.FullName)
+    $currentZipSize += $fileSize
+}
+
+# Create the last zip file if there are remaining files
+if ($currentZipFiles.Count -gt 0) {
+    $zipFileName = "archive_$zipCounter.zip"
+    $zipPath = Create-ZipFile -zipFileName $zipFileName -filesToAdd $currentZipFiles
+    $zipFiles += $zipPath
+}
+
+Write-Output "Created the following zip files:"
+$zipFiles | ForEach-Object { Write-Output $_ }
