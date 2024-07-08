@@ -1,0 +1,136 @@
+To create a React component that displays a grid with 20 hard-coded rows and opens a PDF on clicking a row, we'll use a library like `react-pdf` to handle PDF viewing. Here's a detailed example:
+
+First, ensure you have a React project set up. If not, you can create one using Create React App:
+
+```sh
+npx create-react-app my-grid-app
+cd my-grid-app
+npm install @react-pdf-viewer/core @react-pdf-viewer/default-layout
+npm start
+```
+
+Next, replace the content of `src/App.js` with the following code:
+
+```jsx
+import React, { useState } from 'react';
+import './App.css';
+import { Worker, Viewer } from '@react-pdf-viewer/core';
+import '@react-pdf-viewer/core/lib/styles/index.css';
+import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
+import '@react-pdf-viewer/default-layout/lib/styles/index.css';
+
+const App = () => {
+  const [selectedPdf, setSelectedPdf] = useState(null);
+
+  // Hard-coded data for the grid
+  const data = [
+    { id: 1, name: 'John Doe', age: 28, job: 'Engineer', pdf: '/pdfs/sample1.pdf' },
+    { id: 2, name: 'Jane Smith', age: 32, job: 'Designer', pdf: '/pdfs/sample2.pdf' },
+    { id: 3, name: 'Michael Brown', age: 45, job: 'Manager', pdf: '/pdfs/sample3.pdf' },
+    { id: 4, name: 'Emily Davis', age: 23, job: 'Developer', pdf: '/pdfs/sample4.pdf' },
+    { id: 5, name: 'Daniel Wilson', age: 37, job: 'Architect', pdf: '/pdfs/sample5.pdf' },
+    { id: 6, name: 'Emma Johnson', age: 29, job: 'Scientist', pdf: '/pdfs/sample6.pdf' },
+    { id: 7, name: 'James White', age: 41, job: 'Doctor', pdf: '/pdfs/sample7.pdf' },
+    { id: 8, name: 'Olivia Lewis', age: 27, job: 'Teacher', pdf: '/pdfs/sample8.pdf' },
+    { id: 9, name: 'Lucas Walker', age: 34, job: 'Chef', pdf: '/pdfs/sample9.pdf' },
+    { id: 10, name: 'Sophia Hall', age: 22, job: 'Nurse', pdf: '/pdfs/sample10.pdf' },
+    { id: 11, name: 'Liam Young', age: 30, job: 'Firefighter', pdf: '/pdfs/sample11.pdf' },
+    { id: 12, name: 'Ava King', age: 26, job: 'Artist', pdf: '/pdfs/sample12.pdf' },
+    { id: 13, name: 'Ethan Scott', age: 33, job: 'Writer', pdf: '/pdfs/sample13.pdf' },
+    { id: 14, name: 'Mia Green', age: 31, job: 'Photographer', pdf: '/pdfs/sample14.pdf' },
+    { id: 15, name: 'Noah Adams', age: 25, job: 'Journalist', pdf: '/pdfs/sample15.pdf' },
+    { id: 16, name: 'Isabella Martinez', age: 28, job: 'Lawyer', pdf: '/pdfs/sample16.pdf' },
+    { id: 17, name: 'William Thomas', age: 36, job: 'Pilot', pdf: '/pdfs/sample17.pdf' },
+    { id: 18, name: 'Ella Perez', age: 24, job: 'Mechanic', pdf: '/pdfs/sample18.pdf' },
+    { id: 19, name: 'Benjamin Hill', age: 38, job: 'Scientist', pdf: '/pdfs/sample19.pdf' },
+    { id: 20, name: 'Charlotte Turner', age: 29, job: 'Actor', pdf: '/pdfs/sample20.pdf' },
+  ];
+
+  const defaultLayoutPluginInstance = defaultLayoutPlugin();
+
+  return (
+    <div className="App">
+      <h1>Grid with PDF Viewer</h1>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Job</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((item) => (
+            <tr key={item.id} onClick={() => setSelectedPdf(item.pdf)}>
+              <td>{item.id}</td>
+              <td>{item.name}</td>
+              <td>{item.age}</td>
+              <td>{item.job}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {selectedPdf && (
+        <div className="pdf-viewer">
+          <Worker workerUrl={`https://unpkg.com/pdfjs-dist@2.6.347/build/pdf.worker.min.js`}>
+            <Viewer fileUrl={selectedPdf} plugins={[defaultLayoutPluginInstance]} />
+          </Worker>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
+```
+
+Next, add some basic styling in `src/App.css` to make the grid and PDF viewer look better:
+
+```css
+.App {
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+table {
+  width: 80%;
+  margin: 20px auto;
+  border-collapse: collapse;
+  cursor: pointer;
+}
+
+th, td {
+  padding: 12px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+th {
+  background-color: #f4f4f4;
+}
+
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+tr:hover {
+  background-color: #e0e0e0;
+}
+
+.pdf-viewer {
+  width: 80%;
+  margin: 20px auto;
+  height: 600px;
+  border: 1px solid #ddd;
+}
+```
+
+In this example:
+
+- We use `react-pdf`'s `Viewer` and `Worker` components to display the PDF.
+- When a row is clicked, the `setSelectedPdf` function sets the PDF URL, which is then displayed in the PDF viewer.
+- The table and PDF viewer are styled to look cleaner and more readable.
+
+Ensure you have the PDF files (e.g., `sample1.pdf`, `sample2.pdf`, etc.) in the `public/pdfs` directory of your React project for the PDF viewer to load them correctly.
