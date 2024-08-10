@@ -1,0 +1,87 @@
+
+
+The XML you've provided contains a small typo: the closing tag for `<input>` should be `</input>` instead of `</inputt>`. I'll correct that and show you how to read this XML structure in Java. Here's the corrected XML:
+
+```xml
+<input>
+    <item name="hhh" add="ggg"/>
+    <filename>hhh</filename>
+</input>
+```
+
+Now, here's the Java code to parse and read this XML:
+
+```java
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+public class XMLReader {
+    public static void main(String[] args) {
+        try {
+            // Create a DocumentBuilderFactory
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            
+            // Create a DocumentBuilder
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            
+            // Parse the XML string (assuming it's in a String format)
+            String xml = "<input>" +
+                         "    <item name=\"hhh\" add=\"ggg\"/>" +
+                         "    <filename>hhh</filename>" +
+                         "</input>";
+            Document doc = builder.parse(new java.io.ByteArrayInputStream(xml.getBytes()));
+            
+            // Normalize the XML structure (optional)
+            doc.getDocumentElement().normalize();
+            
+            // Get the root element
+            Element rootElement = doc.getDocumentElement();
+            
+            // Get the 'item' element
+            NodeList itemList = rootElement.getElementsByTagName("item");
+            if (itemList.getLength() > 0) {
+                Node itemNode = itemList.item(0);
+                if (itemNode.getNodeType() == Node.ELEMENT_NODE) {
+                    Element itemElement = (Element) itemNode;
+                    String name = itemElement.getAttribute("name");
+                    String add = itemElement.getAttribute("add");
+                    System.out.println("Item name: " + name);
+                    System.out.println("Item add: " + add);
+                }
+            }
+            
+            // Get the 'filename' element
+            NodeList filenameList = rootElement.getElementsByTagName("filename");
+            if (filenameList.getLength() > 0) {
+                Node filenameNode = filenameList.item(0);
+                if (filenameNode.getNodeType() == Node.ELEMENT_NODE) {
+                    String filename = filenameNode.getTextContent();
+                    System.out.println("Filename: " + filename);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+### Explanation:
+1. **Parsing the XML**: We create an instance of `DocumentBuilder` to parse the XML string into a `Document` object.
+2. **Retrieving Elements**:
+   - We use `getElementsByTagName("item")` to get the `item` element and extract its `name` and `add` attributes.
+   - We use `getElementsByTagName("filename")` to get the `filename` element and extract its text content.
+3. **Node Handling**: We ensure that each node is an `ELEMENT_NODE` before processing it, which helps to avoid issues with other node types (like text nodes).
+
+### Output:
+When you run the code, it will print:
+```
+Item name: hhh
+Item add: ggg
+Filename: hhh
+```
