@@ -1,0 +1,187 @@
+Here is the complete code for a Spring Boot application that monitors an FTP server for new files. The application will use Spring Integration to periodically check the FTP server for new files and process them as they are detected.
+
+Step 1: Create a Spring Boot Project
+
+You can create the project using Spring Initializr or manually set up a Maven project.
+
+Step 2: pom.xml Dependencies
+
+Ensure that your pom.xml contains the necessary dependencies:
+
+<dependencies>
+    <!-- Spring Boot Starter Web -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <!-- Spring Integration Core -->
+    <dependency>
+        <groupId>org.springframework.integration</groupId>
+        <artifactId>spring-integration-core</artifactId>
+    </dependency>
+
+    <!-- Spring Integration FTP -->
+    <dependency>
+        <groupId>org.springframework.integration</groupId>
+        <artifactId>spring-integration-ftp</artifactId>
+    </dependency>
+
+    <!-- Apache Commons Net (for FTP client support) -->
+    <dependency>
+        <groupId>commons-net</groupId>
+        <artifactId>commons-net</artifactId>
+    </dependency>
+</dependencies>
+
+Step 3: Create Main Application Class
+
+Create the main application class FtpFileReaderApplication.java:
+
+package com.example.ftpfilereader;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class FtpFileReaderApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(FtpFileReaderApplication.class, args);
+    }
+}
+
+Step 4: Create FTP Configuration Class
+
+Create a configuration class FtpIntegrationConfig.java to set up the FTP inbound adapter.
+
+package com.example.ftpfilereader;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.integration.annotation.IntegrationComponentScan;
+import org.springframework.integration.channel.DirectChannel;
+import org.springframework.integration.core.MessageSource;
+import org.springframework.integration.file.filters.AcceptAllFileListFilter;
+import org.springframework.integration.ftp.inbound.FtpInboundFileSynchronizer;
+import org.springframework.integration.ftp.inbound.FtpInboundFileSynchronizingMessageSource;
+import org.springframework.integration.ftp.session.DefaultFtpSessionFactory;
+import org.springframework.integration.scheduling.PollerMetadata;
+import org.springframework.scheduling.Trigger;
+import org.springframework.scheduling.support.PeriodicTrigger;
+
+import java.io.File;
+
+@Configuration
+@IntegrationComponentScan
+public class FtpIntegrationConfig {
+
+    // FTP session factory with connection details
+    @Bean
+    public DefaultFtpSessionFactory ftpSessionFactory() {
+        DefaultFtpSessionFactory factory = new DefaultFtpSessionFactory();
+        factory.setHost("ftp.example.com");
+        factory.setPort(21);
+        factory.setUsername("your-ftp-username");
+        factory.setPassword("your-ftp-password");
+        return factory;
+    }
+
+    // FTP inbound file synchronizer to sync remote files
+    @Bean
+    public FtpInboundFileSynchronizer ftpInboundFileSynchronizer() {
+        FtpInboundFileSynchronizer fileSynchronizer = new FtpInboundFileSynchronizer(ftpSessionFactory());
+        fileSynchronizer.setDeleteRemoteFiles(false);
+        fileSynchronizer.setRemoteDirectory("/remote-directory");
+        fileSynchronizer.setFilter(new AcceptAllFileListFilter<>());
+        return fileSynchronizer;
+    }
+
+    // Message source to read new files from the remote FTP server
+    @Bean
+    public MessageSource<File> ftpMessageSource() {
+        FtpInboundFileSynchronizingMessageSource source = new FtpInboundFileSynchronizingMessageSource(ftpInboundFileSynchronizer());
+        source.setLocalDirectory(new File("local-directory"));
+        source.setAutoCreateLocalDirectory(true);
+        source.setLocalFilter(new AcceptAllFileListFilter<>());
+        return source;
+    }
+
+    // Channel to receive messages with files
+    @Bean
+    public DirectChannel ftpChannel() {
+        return new DirectChannel();
+    }
+
+    // Poller to check for new files at fixed intervals
+    @Bean(name = PollerMetadata.DEFAULT_POLLER)
+    public PollerMetadata poller() {
+        PeriodicTrigger trigger = new PeriodicTrigger(5000); // Poll every 5 seconds
+        trigger.setFixedRate(true);
+        PollerMetadata pollerMetadata = new PollerMetadata();
+        pollerMetadata.setTrigger(trigger);
+        return pollerMetadata;
+    }
+}
+
+Step 5: Create File Handling Service
+
+Create a service class FtpFileHandlerService.java to handle the files that are detected:
+
+package com.example.ftpfilereader;
+
+import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.messaging.Message;
+import org.springframework.stereotype.Service;
+
+import java.io.File;
+
+@Service
+public class FtpFileHandlerService {
+
+    @ServiceActivator(inputChannel = "ftpChannel")
+    public void handleNewFile(Message<File> message) {
+        File file = message.getPayload();
+        System.out.println("New file received: " + file.getAbsolutePath());
+        
+        // Add your file processing logic here
+    }
+}
+
+Step 6: Configure Application Properties
+
+Create an application.properties file in the src/main/resources directory to configure FTP server details:
+
+ftp.host=ftp.example.com
+ftp.port=21
+ftp.username=your-ftp-username
+ftp.password=your-ftp-password
+ftp.remote.directory=/remote-directory
+ftp.local.directory=local-directory
+
+Step 7: Run the Application
+
+1. Run the Spring Boot application by executing the main method in the FtpFileReaderApplication class.
+
+
+2. Make sure the FTP server is running and that the application has access to the FTP credentials and directory.
+
+
+
+Explanation
+
+ftpSessionFactory(): Configures the FTP session with connection details.
+
+ftpInboundFileSynchronizer(): Sets up synchronization from the remote directory.
+
+ftpMessageSource(): Provides a message source that watches for new files.
+
+ftpChannel(): Defines a channel to receive messages containing the files.
+
+poller(): Sets a poller that checks for new files every 5 seconds.
+
+handleNewFile(): Handles the processing of newly detected files.
+
+
+This setup should allow the Spring Boot application to detect and process new files added to your FTP server.
+
